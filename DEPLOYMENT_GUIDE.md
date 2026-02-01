@@ -1,43 +1,33 @@
-# Deployment Guide
+# Deployment Guide: Streamlit Cloud
 
-You encountered a `250 MB` limit on Vercel. This is because **OpenCV** and **Streamlit** together are too large for Vercel's Serverless Functions.
-Additionally, **GitHub Pages** cannot run this app because it only supports "Static Sites" (HTML/CSS), not Python applications.
+Your application uses **Streamlit** (Web UI) and **OpenCV** (Face Recognition).
+These libraries are too large for **Vercel** (which has a 250MB limit).
+**GitHub Pages** cannot run this because it does not support Python.
 
-## The Solution: Streamlit Community Cloud
+**The Solution: Streamlit Community Cloud**
+This is a free service specifically for hosting Streamlit apps.
 
-The best (and free) place to deploy this app is **Streamlit Community Cloud**. It is optimized for exactly this kind of Python app and does not have the 250MB limit in the same way.
-
-### Steps to Deploy
+## Instructions
 
 1.  **Push to GitHub**
-    *   If you haven't already, push your code to a new GitHub repository:
-        ```bash
-        git init
-        git add .
-        git commit -m "Initial commit"
-        # Create repo on GitHub.com called 'attendance-system'
-        git remote add origin https://github.com/YOUR_USERNAME/attendance-system.git
-        git push -u origin master
-        ```
+    Ensure this folder is a GitHub repository.
+    ```bash
+    git add .
+    git commit -m "Ready for deployment"
+    git push origin master
+    ```
 
-2.  **Sign up for Streamlit Cloud**
-    *   Go to [share.streamlit.io](https://share.streamlit.io/).
-    *   Sign in with your GitHub account.
+2.  **Deploy on Streamlit Cloud**
+    1.  Go to [share.streamlit.io](https://share.streamlit.io/)
+    2.  Login with GitHub.
+    3.  Click **"New app"**.
+    4.  Select your repository: `Attendance-Management-system...`
+    5.  Set **Main file path** to: `streamlit_app.py`
+    6.  Click **"Deploy!"**.
 
-3.  **Deploy**
-    *   Click **"New app"**.
-    *   Select your GitHub repository (`attendance-system`).
-    *   Select the branch (`master` or `main`).
-    *   Main file path: `streamlit_app.py`.
-    *   Click **"Deploy!"**.
+3.  **Done!**
+    Your app will be live. The camera will work in the browser.
 
-### Why this works
-*   **No Size Limit**: It runs in a full container, not a tiny function.
-*   **Camera Support**: Streamlit Cloud handles the SSL/HTTPS required for camera access.
-*   **Free**: It is free for public repositories.
-
-### Note on Persistence
-Streamlit Cloud app restarts occasionally.
-*   **Registered Students**: Will be saved to `data/attendance.db` *inside the container*.
-*   **Warning**: If the app restarts (after a few days of inactivity), **YOU WILL LOSE DATA** unless you connect it to an external database (like Google Sheets or Firestore).
-*   For a university project demo, this is usually acceptable.
+## Note on Data
+Streamlit Cloud is ephemeral. If the app restarts, the SQLite database `database.db` might reset.
+For a permanent app, you would need to connect to a cloud database (like Google Sheets, Firestore, or Supabase), but for a demo, this current setup is fine.

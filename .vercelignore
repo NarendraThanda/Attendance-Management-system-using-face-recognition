@@ -1,0 +1,7 @@
+# Vercel Ignore
+data/
+training_images/
+__pycache__/
+*.pyc
+.git/
+.DS_Store

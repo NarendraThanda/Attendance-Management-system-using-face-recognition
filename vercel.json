@@ -10,5 +10,8 @@
             "src": "/(.*)",
             "dest": "streamlit_app.py"
         }
-    ]
+    ],
+    "env": {
+        "VERCEL_BUILDER_DEBUG": "1"
+    }
 }

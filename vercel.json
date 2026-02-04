@@ -1,17 +1,9 @@
 {
-    "builds": [
+    "version": 2,
+    "rewrites": [
         {
-            "src": "streamlit_app.py",
-            "use": "@vercel/python"
+            "source": "/(.*)",
+            "destination": "/streamlit_app.py"
         }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "streamlit_app.py"
-        }
-    ],
-    "env": {
-        "VERCEL_BUILDER_DEBUG": "1"
-    }
+    ]
 }

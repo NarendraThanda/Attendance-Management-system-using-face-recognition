@@ -1,0 +1,7 @@
+[build]
+  command = "pip install -r requirements.txt"
+  publish = "public"
+
+[dev]
+  command = "streamlit run streamlit_app.py"
+  port = 8501

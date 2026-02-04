@@ -5,15 +5,20 @@ import datetime
 from PIL import Image
 import os
 import shutil
+import pandas as pd # Added for charts
 
-# Local Modules (we reuse the logic but adapt for Streamlit)
+# Local Modules
 from src.database import DatabaseManager
+from src.styles import apply_glass_style
 
 # Initialize standard database
 db = DatabaseManager()
 
 # --- Page Config ---
-st.set_page_config(page_title="Attendance System", layout="wide")
+st.set_page_config(page_title="Attendance System", layout="wide", page_icon="🟣")
+
+# --- Apply Custom CSS ---
+apply_glass_style()
 
 # --- Helper Functions for Streamlit ---
 def save_uploaded_image(uploaded_file, name, enrollment):
@@ -24,11 +29,6 @@ def save_uploaded_image(uploaded_file, name, enrollment):
     try:
         image = Image.open(uploaded_file).convert('L')
         image_np = np.array(image, 'uint8')
-        
-        # Save usually requires multiple samples for training
-        # For this web demo, we will just save one or generate variants
-        # In a real deployed app, capturing 60 frames via web is harder without webrtc
-        # We will save this SINGLE image as a "sample"
         
         # Checking existing count to increment sample num
         existing_files = [f for f in os.listdir(save_dir) if f.startswith(f"{name}.{enrollment}")]
@@ -43,7 +43,6 @@ def save_uploaded_image(uploaded_file, name, enrollment):
         return False, str(e)
 
 def train_model():
-    # Reuse logic from recognizer.py but adapted
     training_dir = "data/training_images"
     model_dir = "data/models"
     os.makedirs(model_dir, exist_ok=True)
@@ -105,87 +104,142 @@ def recognize_from_image(uploaded_file):
     return True, recognized_ids
 
 # --- Sidebar ---
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Home", "Register Student", "Train Model", "Mark Attendance", "View Records"])
+st.sidebar.title("🟣 Navigation")
+page = st.sidebar.radio("Go to", ["Dashboard", "Register Student", "Train Model", "Mark Attendance", "View Records"])
+
+st.sidebar.markdown("---")
+st.sidebar.info("Application System v2.0\nGlassmorphism UI")
 
 # --- Pages ---
-if page == "Home":
-    st.title("Attendance Management System")
-    st.write("Welcome to the Face Recognition Attendance System (Web Version).")
-    st.info("Note: For Vercel deployment, data is ephemeral (resets on restart) unless connected to Cloud Storage.")
+
+if page == "Dashboard":
+    st.title("Admin Dashboard")
+    st.markdown("### Overview")
+    
+    # Metrics
+    students_rows = db.get_student_details()
+    total_students = len(students_rows) if students_rows else 0
+    
+    # Mock daily attendance (since we don't have a 'get_today_attendance' method yet)
+    # We can get total calls to log?
+    # For now, let's just show total students
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Students", total_students, delta="Active")
+    col2.metric("System Status", "Online", delta="Stable")
+    col3.metric("Last Update", datetime.datetime.now().strftime("%H:%M"), delta="Live")
+    
+    # Charts Section
+    st.markdown("### Attendance Analytics")
+    if total_students > 0:
+        # Mock data for visualization if no logs
+        # Or try to fetch some logs if possible
+        # logs = db.get_attendance_log("Maths") # Example
+        
+        # Let's show a mock chart for aesthetic demonstration as requested
+        chart_data = pd.DataFrame(
+            np.random.randn(20, 3),
+            columns=['a', 'b', 'c'])
+        
+        st.bar_chart(chart_data)
+    else:
+        st.info("Register students to see analytics.")
 
 elif page == "Register Student":
-    st.header("Register New Student")
-    enrollment = st.text_input("Enrollment ID")
-    name = st.text_input("Student Name")
+    st.title("Register New Student")
     
-    img_file = st.camera_input("Take a picture")
-    
-    if st.button("Save Profile"):
-        if enrollment and name and img_file:
-            # 1. Register in DB
-            success, msg = db.add_student(enrollment, name)
-            if success or "already exists" in msg:
-                # 2. Save Image
-                ok, img_msg = save_uploaded_image(img_file, name, enrollment)
-                if ok:
-                    st.success(f"Registered {name} & {img_msg}")
+    with st.container():
+        st.markdown('<div class="glass-container">', unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.markdown("#### 📸 Capture")
+            img_file = st.camera_input("Take a picture")
+        
+        with col2:
+            st.markdown("#### 📝 Details")
+            enrollment = st.text_input("Enrollment ID", placeholder="Ex: 101")
+            name = st.text_input("Student Name", placeholder="Ex: John Doe")
+            
+            if st.button("Save Profile"):
+                if enrollment and name and img_file:
+                    with st.spinner("Saving..."):
+                        # 1. Register in DB
+                        success, msg = db.add_student(enrollment, name)
+                        if success or "already exists" in msg:
+                            # 2. Save Image
+                            ok, img_msg = save_uploaded_image(img_file, name, enrollment)
+                            if ok:
+                                st.success(f"Registered {name} & {img_msg}")
+                            else:
+                                st.error(f"Error saving image: {img_msg}")
+                        else:
+                            st.error(msg)
                 else:
-                    st.error(f"Error saving image: {img_msg}")
-            else:
-                st.error(msg)
-        else:
-            st.warning("Please fill all fields and take a photo.")
+                    st.warning("Please fill all fields and take a photo.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 elif page == "Train Model":
-    st.header("Train Recognition Model")
-    if st.button("Start Training"):
-        with st.spinner("Training..."):
-            success, msg = train_model()
-            if success:
-                st.success(msg)
-            else:
-                st.error(msg)
+    st.title("Train Recognition Model")
+    st.markdown("Re-train the model whenever new students are registered.")
+    
+    col1, col2 = st.columns([1, 4])
+    with col1:
+        if st.button("Start Training"):
+            with st.spinner("Training Neural Network..."):
+                success, msg = train_model()
+                if success:
+                    st.success(msg)
+                    st.balloons()
+                else:
+                    st.error(msg)
 
 elif page == "Mark Attendance":
-    st.header("Mark Attendance")
-    subject = st.text_input("Subject Name")
+    st.title("Mark Attendance")
     
-    img_file = st.camera_input("Scan Face for Attendance")
+    col1, col2 = st.columns(2)
     
-    if st.button("Mark Present"):
-        if subject and img_file:
-            success, result = recognize_from_image(img_file)
-            if success:
-                if result:
-                    present_names = []
-                    for enroll in set(result):
-                        # Fetch name
-                        rows = db.get_student_details()
-                        student_name = "Unknown"
-                        for r in rows: 
-                            if str(r[0]) == str(enroll):
-                                student_name = r[1]
-                                break
+    with col1:
+        subject = st.text_input("Subject Name", placeholder="Mathematics")
+        img_file = st.camera_input("Scan Face")
+    
+    with col2:
+        st.markdown("### Results")
+        if st.button("Mark Present"):
+            if subject and img_file:
+                success, result = recognize_from_image(img_file)
+                if success:
+                    if result:
+                        present_names = []
+                        for enroll in set(result):
+                            # Fetch name
+                            rows = db.get_student_details()
+                            student_name = "Unknown"
+                            for r in rows: 
+                                if str(r[0]) == str(enroll):
+                                    student_name = r[1]
+                                    break
+                            
+                            db.mark_attendance(enroll, student_name, subject)
+                            present_names.append(student_name)
                         
-                        db.mark_attendance(enroll, student_name, subject)
-                        present_names.append(student_name)
-                    
-                    st.success(f"Marked Present: {', '.join(present_names)}")
+                        st.success(f"✅ Marked Present: {', '.join(present_names)}")
+                    else:
+                        st.warning("⚠️ Face not recognized.")
                 else:
-                    st.warning("Face not recognized.")
+                    st.error(result)
             else:
-                st.error(result)
-        else:
-            st.warning("Enter subject and take photo.")
+                st.warning("Enter subject and take photo.")
 
 elif page == "View Records":
-    st.header("Attendance Records")
+    st.title("Attendance Records")
     subject_filter = st.text_input("Filter by Subject")
     if subject_filter:
         data = db.get_attendance_log(subject_filter)
         if data:
-            st.table(data)
+            # Convert to DataFrame for nicer display
+            df = pd.DataFrame(data, columns=["ID", "Enrollment", "Name", "Subject", "Date", "Time"])
+            st.dataframe(df, use_container_width=True)
         else:
             st.info("No records found.")
     else:
